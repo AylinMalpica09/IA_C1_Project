@@ -77,7 +77,6 @@ entry_cruze = tk.Entry(app)
 entry_cruze.grid(row=7, column=1, padx=5, pady=5)
 
 #Guardar los datos obtenidos
-
 def print_entries():
     result = float(entry_b.get()) - float(entry_a.get())
     entry_r.delete(0, tk.END)
