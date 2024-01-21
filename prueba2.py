@@ -165,30 +165,6 @@ def parse_function():
         print("Error al analizar la función. Asegúrate de que la función sea válida.")
         return None
 
-def optimizacion (ind):
-    generaciones = int(iteraciones.get())
-    resultados = []
-    resultados_grafica = []
-    for generacion in range(generaciones):
-        print(f"\nProceso de optimización - Generación {generacion}\n")
-        ind_ordenados = organizar(ind) #ordena mi p0 para minimizar o maximizar
-        ultimo_id = len(ind_ordenados)
-        parejas_formada = parejas(ind_ordenados)
-        parejas_cruzadas=cruza(parejas_formada, ultimo_id)
-        gen_mutada = mutacion(parejas_cruzadas)
-        poblacion_total = ind_ordenados + gen_mutada
-        #print ("poblacion total sin modificaciones\n","n° de poblacion",len(poblacion_total),"\n", poblacion_total, "\nHasta aqui bien")
-        gen_podada = poda(poblacion_total)
-        resultados_grafica = grafica(gen_podada, resultados_grafica)
-    for i, resultados_generacion in enumerate(resultados_grafica):
-        print(f"\nResultados Generación {i}:")
-        print("Mejor: {:.4f}".format(resultados_generacion['mejor']))
-        print("Promedio: {:.4f}".format(resultados_generacion['promedio']))
-        print("Peor: {:.4f}".format(resultados_generacion['peor']))
-    
-    plot_resultados(resultados_grafica)
-    return resultados
-
 def organizar (ind):
     numbers_org = []
     if opcion == 1:
@@ -300,37 +276,6 @@ def mutacion_ind(mutated_candidates, p_gen):
     
     return mutated_individual
 
-def poda(poblacion_total):
-    #print("estoy en la poda XD")
-    po_max = int(p_max.get())
-    
-    poblacion = org_pob_total(poblacion_total)
-
-     # Mantener al mejor individuo
-    mejor_individuo = poblacion[0]
-    
-    nueva_poblacion = [mejor_individuo]
-
-    # Determinar la cantidad de individuos a eliminar
-    cantidad_a_eliminar = max(0, len(poblacion) - po_max)
-    
-    # Seleccionar de manera aleatoria los individuos a eliminar
-    indices_a_eliminar = random.sample(range(1, len(poblacion)), min(cantidad_a_eliminar, len(poblacion) - 1))
-    
-    # Agregar a la nueva población los individuos no seleccionados para eliminar
-    nueva_poblacion.extend(entry for i, entry in enumerate(poblacion[1:], start=1) if i not in indices_a_eliminar)
-
-    # Actualizar los IDs en la nueva población
-    for i, entry in enumerate(nueva_poblacion, start=1):
-        entry['id'] = i
-
-    # Imprimir la nueva población
-    print("\nPoblación después de la eliminación aleatoria:")
-    print("{:<5} {:<10} {:<20} {:<10} {:<10}".format("ID", "Number", "Binary", "X", "f(x)"))
-    for entry in nueva_poblacion:
-        print("{:<5} {:<10} {:<20} {:<10} {:<10}".format(entry['id'], entry['number'], entry['binary'], entry['x'], round(entry['f(x)'], 4)))
-    return nueva_poblacion
-
 def grafica(gen_podada,resultados_grafica):
     print("vamos por los datos de la grafica\n")
     if opcion == 1:
@@ -391,6 +336,75 @@ def org_pob_total (poblacion_total):
 def start ():
     ind=data_inicial()
     optimizacion(ind)
+
+def poda(poblacion_total):
+    #print("estoy en la poda XD")
+    po_max = int(p_max.get())
+    
+    poblacion = org_pob_total(poblacion_total)
+
+     # Mantener al mejor individuo
+    mejor_individuo=None
+    peor_individuo=None
+    if opcion == 1:
+        mejor_individuo = min(poblacion, key=lambda entry: entry['f(x)'])
+        peor_individuo= max(poblacion, key=lambda entry: entry['f(x)'])
+    else:
+        mejor_individuo = max(poblacion, key=lambda entry: entry['f(x)'])
+        peor_individuo= min(poblacion, key=lambda entry: entry['f(x)'])
+
+    nueva_poblacion = []
+    nueva_poblacion.append(mejor_individuo)
+    nueva_poblacion.append(peor_individuo)
+    
+    # Determinar la cantidad de individuos a eliminar
+    cantidad_a_eliminar = max(0, len(poblacion) - po_max)
+    
+    # Seleccionar de manera aleatoria los individuos a eliminar
+    indices_a_eliminar = random.sample(range(1, len(poblacion)), min(cantidad_a_eliminar, len(poblacion) - 1))
+    
+    # Agregar a la nueva población los individuos no seleccionados para eliminar
+    nueva_poblacion.extend(entry for i, entry in enumerate(poblacion[1:], start=1) if i not in indices_a_eliminar)
+
+    # Actualizar los IDs en la nueva población
+    for i, entry in enumerate(nueva_poblacion, start=1):
+        entry['id'] = i
+
+    # Imprimir la nueva población
+    print("\nPoblación después de la eliminación aleatoria:")
+    print("{:<5} {:<10} {:<20} {:<10} {:<10}".format("ID", "Number", "Binary", "X", "f(x)"))
+    for entry in nueva_poblacion:
+        print("{:<5} {:<10} {:<20} {:<10} {:<10}".format(entry['id'], entry['number'], entry['binary'], entry['x'], round(entry['f(x)'], 4)))
+    return nueva_poblacion
+
+def get_promedio (poblacion):
+    promedio = sum(entry['f(x)'] for entry in poblacion) / len(poblacion)
+    return promedio
+
+def optimizacion (ind):
+    generaciones = int(iteraciones.get())
+    resultados = []
+    resultados_grafica = []
+    for generacion in range(generaciones):
+        print(f"\nProceso de optimización - Generación {generacion}\n")
+        ind_ordenados = organizar(ind) #ordena mi p0 para minimizar o maximizar
+        ultimo_id = len(ind_ordenados)
+        parejas_formada = parejas(ind_ordenados)
+        parejas_cruzadas=cruza(parejas_formada, ultimo_id)
+        gen_mutada = mutacion(parejas_cruzadas)
+        poblacion_total = ind_ordenados + gen_mutada
+        #print ("poblacion total sin modificaciones\n","n° de poblacion",len(poblacion_total),"\n", poblacion_total, "\nHasta aqui bien")
+        gen_podada = poda(poblacion_total)
+        promedio = get_promedio(gen_podada)
+        resultados_grafica = grafica(gen_podada, resultados_grafica)
+    for i, resultados_generacion in enumerate(resultados_grafica):
+        print(f"\nResultados Generación {i}:")
+        print("Mejor: {:.4f}".format(resultados_generacion['mejor']))
+        print("Promedio: {:.4f}".format(resultados_generacion['promedio']))
+        print("Peor: {:.4f}".format(resultados_generacion['peor']))
+    
+    plot_resultados(resultados_grafica)
+    return resultados
 
 #grafica 
 def plot_resultados(resultados_grafica):
