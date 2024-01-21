@@ -164,6 +164,55 @@ def parse_function():
     except:
         print("Error al analizar la función. Asegúrate de que la función sea válida.")
         return None
+#optimizacion
+def optimizacion(ind):
+    generaciones = int(iteraciones.get())
+    resultados_grafica = []
+    mejor_global = {}  # Inicializar mejor_global como un diccionario vacío
+
+    for generacion in range(generaciones):
+        print(f"\nProceso de optimización - Generación {generacion}\n")
+        ind_ordenados = organizar(ind)
+        ultimo_id = len(ind_ordenados)
+        parejas_formada = parejas(ind_ordenados)
+        parejas_cruzadas = cruza(parejas_formada, ultimo_id)
+        gen_mutada = mutacion(parejas_cruzadas)
+        poblacion_total = ind_ordenados + gen_mutada
+        gen_podada = poda(poblacion_total)
+        if opcion ==1:
+            mejor_local = min(gen_podada, key=lambda entry: entry['f(x)'])
+
+        # Asegurarse de que no pierda el mejor individuo
+            if not mejor_global or mejor_local['f(x)'] > mejor_global['f(x)']:
+                mejor_global = mejor_local.copy()  # Asegúrate de copiar el mejor_local para evitar referencias directas
+
+            resultados_grafica.append({
+                "mejor": mejor_global['f(x)'],
+                "promedio": get_promedio(gen_podada),
+                "peor": max(gen_podada, key=lambda entry: entry['f(x)'])['f(x)']
+            })
+        elif opcion ==2:
+            
+            mejor_local = max(gen_podada, key=lambda entry: entry['f(x)'])
+
+            # Asegurarse de que no pierda el mejor individuo
+            if not mejor_global or mejor_local['f(x)'] > mejor_global['f(x)']:
+                mejor_global = mejor_local.copy()  # Asegúrate de copiar el mejor_local para evitar referencias directas
+
+            resultados_grafica.append({
+                "mejor": mejor_global['f(x)'],
+                "promedio": get_promedio(gen_podada),
+                "peor": min(gen_podada, key=lambda entry: entry['f(x)'])['f(x)']
+            })
+
+    for i, resultados_generacion in enumerate(resultados_grafica):
+        print(f"\nResultados Generación {i}:")
+        print("Mejor: {:.4f}".format(resultados_generacion['mejor']))
+        print("Promedio: {:.4f}".format(resultados_generacion['promedio']))
+        print("Peor: {:.4f}".format(resultados_generacion['peor']))
+
+    plot_resultados(resultados_grafica)
+    return resultados_grafica
 
 def organizar (ind):
     numbers_org = []
@@ -275,7 +324,7 @@ def mutacion_ind(mutated_candidates, p_gen):
     mutated_individual['f(x)'] = parsed_function.subs('x', mutated_individual['x'])
     
     return mutated_individual
-
+#grafica 
 def grafica(gen_podada,resultados_grafica):
     print("vamos por los datos de la grafica\n")
     if opcion == 1:
@@ -333,10 +382,6 @@ def org_pob_total (poblacion_total):
     
     return pob_total_order
 
-def start ():
-    ind=data_inicial()
-    optimizacion(ind)
-
 def poda(poblacion_total):
     #print("estoy en la poda XD")
     po_max = int(p_max.get())
@@ -381,30 +426,9 @@ def get_promedio (poblacion):
     promedio = sum(entry['f(x)'] for entry in poblacion) / len(poblacion)
     return promedio
 
-def optimizacion (ind):
-    generaciones = int(iteraciones.get())
-    resultados = []
-    resultados_grafica = []
-    for generacion in range(generaciones):
-        print(f"\nProceso de optimización - Generación {generacion}\n")
-        ind_ordenados = organizar(ind) #ordena mi p0 para minimizar o maximizar
-        ultimo_id = len(ind_ordenados)
-        parejas_formada = parejas(ind_ordenados)
-        parejas_cruzadas=cruza(parejas_formada, ultimo_id)
-        gen_mutada = mutacion(parejas_cruzadas)
-        poblacion_total = ind_ordenados + gen_mutada
-        #print ("poblacion total sin modificaciones\n","n° de poblacion",len(poblacion_total),"\n", poblacion_total, "\nHasta aqui bien")
-        gen_podada = poda(poblacion_total)
-        promedio = get_promedio(gen_podada)
-        resultados_grafica = grafica(gen_podada, resultados_grafica)
-    for i, resultados_generacion in enumerate(resultados_grafica):
-        print(f"\nResultados Generación {i}:")
-        print("Mejor: {:.4f}".format(resultados_generacion['mejor']))
-        print("Promedio: {:.4f}".format(resultados_generacion['promedio']))
-        print("Peor: {:.4f}".format(resultados_generacion['peor']))
-    
-    plot_resultados(resultados_grafica)
-    return resultados
+def start ():
+    ind=data_inicial()
+    optimizacion(ind)
 
 #grafica 
 def plot_resultados(resultados_grafica):
