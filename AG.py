@@ -1,10 +1,13 @@
 import tkinter as tk
 import math as math
 import random
+import cv2 
 from sympy import lambdify, sympify
 import matplotlib.pyplot as plt
 import os
 
+#rutas
+ruta_images = "/Users/ventu/Escritorio/IA_C1_Project/images"
 app = tk.Tk()
 app.title("Proyecto IA C1")
 
@@ -232,7 +235,7 @@ def optimizacion(ind):
         
     
     plot_resultados(resultados_grafica)
-
+    crear_video(ruta_images)
     return resultados_grafica
 
 def organizar (ind):
@@ -496,7 +499,7 @@ def plot_resultados(resultados_grafica):
     plt.legend()
     plt.show()
     
-def plot_resultados_gen(datos, best, worst,id_gen):
+def plot_resultados_gen(datos, best, worst,id_gen,save_path=ruta_images):
     print("generacion n°:", id_gen)
     datos_x = [i['x'] for i in datos]
     datos_y = [i['fx'] for i in datos]
@@ -511,7 +514,33 @@ def plot_resultados_gen(datos, best, worst,id_gen):
     plt.ylabel('fx')
     plt.title('Resultado de la Generacion {}'.format(id_gen))
     plt.legend()
-    plt.show()
+
+    if save_path:
+        # Asegurarse de que el directorio de guardado exista
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        filename = 'resultado_generacion_{}.png'.format(id_gen)
+        plt.savefig(os.path.join(save_path, filename))
+        print(f"La gráfica de la generación {id_gen} ha sido guardada en: {save_path}")
+    else:
+        plt.show()
+
+    plt.close()
+#generar videos
+def crear_video(images, nombre_video="video_resultados.mp4", fps=1):
+    imagenes = [img for img in os.listdir(images) if img.endswith(".png")]
+    frame = cv2.imread(os.path.join(images, imagenes[0]))
+    altura, ancho, _ = frame.shape
+
+    video = cv2.VideoWriter(nombre_video, cv2.VideoWriter_fourcc(*"mp4v"), fps, (ancho, altura))
+
+    for imagen in imagenes:
+        frame = cv2.imread(os.path.join(images, imagen))
+        video.write(frame)
+
+    cv2.destroyAllWindows()
+    video.release()
+
+    print(f"El video {nombre_video} ha sido creado con éxito.")
 
 button_end = tk.Button(app, text="Ejecutar algoritmo", command=start)
 button_end.grid(row=12, column=1, padx=5, pady=5)    
