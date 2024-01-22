@@ -3,6 +3,7 @@ import math as math
 import random
 from sympy import lambdify, sympify
 import matplotlib.pyplot as plt
+import os
 
 app = tk.Tk()
 app.title("Proyecto IA C1")
@@ -22,7 +23,7 @@ opcion = None
 def print_entries(valor):
     global opcion
     opcion = valor
-    print("f(x): ",funcion.get())
+    print("fx: ",funcion.get())
     print("Población incial: ",po_inicial.get())
     print("Población máximma: ",po_max.get())
     print("Probabilidad de muta individual: ",p_ind.get())
@@ -33,7 +34,7 @@ def print_entries(valor):
     print("Número de resoluciones: ",resolucion.get())
     print("Valor del boton: ",opcion)
 
-label = tk.Label(app, text="f(x)")
+label = tk.Label(app, text="fx")
 label.grid(row=0, column=0, padx=5, pady=5)
 
 funcion = tk.Entry(app, textvariable=funcion)
@@ -115,6 +116,7 @@ def data_inicial ():
     bits_needed = get_bits() #calculo el numero de la repreesentacion de los bits
     #print("numero de bits: ", bits_needed)
     ind = generate_indiv(bits_needed)
+    #print("individuos\n", ind )
     return (ind)
 
 def get_bits ():
@@ -131,26 +133,36 @@ def get_bits ():
 def generate_indiv(bits_needed):
     global parsed_function  # Hacer global la funcion
     parsed_function = parse_function()
+    
     if parsed_function is not None:
         numbers = generate_p0(bits_needed)
         #print("\nNúmeros generados y sus representaciones binarias:")
+        
         #for entry in numbers:
-            #print(f"ID: {entry['id']}, Number: {entry['number']}, Binary: {entry['binary']}, X: {entry['x']}, f(x): {round(parsed_function.subs('x', entry['x']), 4)}")
+            #print(f"ID: {entry['id']}, Number: {entry['number']}, Binary: {entry['binary']}, X: {entry['x']}, fx: {round(parsed_function.subs('x', entry['x']), 4)}")
+    #print ("otros individuos :D\n", numbers)
     return numbers
 
-def generate_p0 (bits_needed):
+def generate_p0(bits_needed):
+    global parsed_function  # Hacer global la funcion
+    parsed_function = parse_function()
+
     tamaño = int(po_inicial.get())
     min_x = float(x_min.get())
     max_x = float(x_max.get())
-    rango_value = int (max_x - min_x)
-    num = int (2**(bits_needed)-1)
+    rango_value = int(max_x - min_x)
+    num = int(2**(bits_needed) - 1)
     list = []
+
     for i in range(tamaño):
         number = random.randint(1, num)
         binary_representation = bin(number)[2:].zfill(bits_needed)  # Convertir a binario 
         deltax = float(rango_value / num)
         x = round(calculate_x(min_x, number, deltax), 3)
-        list.append({"id": i+1, "number": number, "binary": binary_representation,"x": x})
+        # Calcular fx utilizando parsed_function
+        fx = round(parsed_function.subs('x', x), 4)
+        list.append({"id": i+1, "number": number, "binary": binary_representation, "x": x, "fx": fx})
+
     return list
 
 def calculate_x(a, number, deltax):
@@ -172,38 +184,44 @@ def optimizacion(ind):
 
     for generacion in range(generaciones):
         print(f"\nProceso de optimización - Generación {generacion}\n")
+        id_gen = generacion
+        
         ind_ordenados = organizar(ind)
         ultimo_id = len(ind_ordenados)
         parejas_formada = parejas(ind_ordenados)
         parejas_cruzadas = cruza(parejas_formada, ultimo_id)
         gen_mutada = mutacion(parejas_cruzadas)
         poblacion_total = ind_ordenados + gen_mutada
+        datos,best,worst = obtener_datos_generacion(poblacion_total)
+        
         gen_podada = poda(poblacion_total)
+
         if opcion ==1:
-            mejor_local = min(gen_podada, key=lambda entry: entry['f(x)'])
+            mejor_local = min(gen_podada, key=lambda entry: entry['fx'])
 
         # Asegurarse de que no pierda el mejor individuo
-            if not mejor_global or mejor_local['f(x)'] > mejor_global['f(x)']:
+            if not mejor_global or mejor_local['fx'] > mejor_global['fx']:
                 mejor_global = mejor_local.copy()  # Asegúrate de copiar el mejor_local para evitar referencias directas
 
             resultados_grafica.append({
-                "mejor": mejor_global['f(x)'],
+                "mejor": mejor_global['fx'],
                 "promedio": get_promedio(gen_podada),
-                "peor": max(gen_podada, key=lambda entry: entry['f(x)'])['f(x)']
+                "peor": max(gen_podada, key=lambda entry: entry['fx'])['fx']
             })
         elif opcion ==2:
             
-            mejor_local = max(gen_podada, key=lambda entry: entry['f(x)'])
+            mejor_local = max(gen_podada, key=lambda entry: entry['fx'])
 
             # Asegurarse de que no pierda el mejor individuo
-            if not mejor_global or mejor_local['f(x)'] > mejor_global['f(x)']:
+            if not mejor_global or mejor_local['fx'] > mejor_global['fx']:
                 mejor_global = mejor_local.copy()  # Asegúrate de copiar el mejor_local para evitar referencias directas
 
             resultados_grafica.append({
-                "mejor": mejor_global['f(x)'],
+                "mejor": mejor_global['fx'],
                 "promedio": get_promedio(gen_podada),
-                "peor": min(gen_podada, key=lambda entry: entry['f(x)'])['f(x)']
+                "peor": min(gen_podada, key=lambda entry: entry['fx'])['fx']
             })
+        plot_resultados_gen(datos, best, worst,id_gen)
 
     for i, resultados_generacion in enumerate(resultados_grafica):
         print(f"\nResultados Generación {i}:")
@@ -211,7 +229,10 @@ def optimizacion(ind):
         print("Promedio: {:.4f}".format(resultados_generacion['promedio']))
         print("Peor: {:.4f}".format(resultados_generacion['peor']))
 
+        
+    
     plot_resultados(resultados_grafica)
+
     return resultados_grafica
 
 def organizar (ind):
@@ -224,7 +245,7 @@ def organizar (ind):
         numbers_org = sorted(ind, key=lambda entry: parsed_function.subs('x', entry['x']), reverse=True)
     #print("\nNúmeros organizados y sus representaciones binarias:")
     #for entry in numbers_org:
-        #print(f"ID: {entry['id']}, Number: {entry['number']}, Binary: {entry['binary']}, X: {entry['x']}, f(x): {round(parsed_function.subs('x', entry['x']), 4)}")
+        #print(f"ID: {entry['id']}, Number: {entry['number']}, Binary: {entry['binary']}, X: {entry['x']}, fx: {round(parsed_function.subs('x', entry['x']), 4)}")
 
     return numbers_org
 
@@ -258,10 +279,10 @@ def cruza(parejas_formada,ultimo_id):
         child_x_2 = round(calculate_x(min_x, child_number_1, deltax), 3)
         child_fx_2 = parsed_function.subs('x', child_x_2)
         # Agrega los nuevos individuos a la nueva generación
-        new_generation.append({"id": ultimo_id + len(new_generation) + 1, "number": child_number_1, "binary": child_binary_1, "x": child_x_1, "f(x)": child_fx_1, "padre1": best_individual['id'], "padre2": other_individual['id']})
-        new_generation.append({"id": ultimo_id + len(new_generation) + 1, "number": child_number_2, "binary": child_binary_2, "x": child_x_2, "f(x)": child_fx_2, "padre1": other_individual['id'], "padre2": best_individual['id']})
+        new_generation.append({"id": ultimo_id + len(new_generation) + 1, "number": child_number_1, "binary": child_binary_1, "x": child_x_1, "fx": child_fx_1, "padre1": best_individual['id'], "padre2": other_individual['id']})
+        new_generation.append({"id": ultimo_id + len(new_generation) + 1, "number": child_number_2, "binary": child_binary_2, "x": child_x_2, "fx": child_fx_2, "padre1": other_individual['id'], "padre2": best_individual['id']})
     #print ("nueva generacion creada\n")
-    #print("{:<5} {:<10} {:<20} {:<10} {:<10}".format("ID", "Number", "Binary", "X", "f(x)"))
+    #print("{:<5} {:<10} {:<20} {:<10} {:<10}".format("ID", "Number", "Binary", "X", "fx"))
     #for entry in new_generation:
         #print("{:<5} {:<10} {:<20} {:<10} {:<10}".format(entry['id'], entry['number'], entry['binary'], entry['x'], round(parsed_function.subs('x', entry['x']), 4)))
     return new_generation
@@ -278,9 +299,9 @@ def mutacion (parejas_cruzadas):
     
     # Mostrar los candidatos a mutación en una tabla
     #print("\nCandidatos a mutación:")
-    #print("{:<5} {:<10} {:<20} {:<10} {:<10} {:<15}".format("ID", "Number", "Binary", "X", "f(x)", "Mutation Value"))
+    #print("{:<5} {:<10} {:<20} {:<10} {:<10} {:<15}".format("ID", "Number", "Binary", "X", "fx", "Mutation Value"))
     #for entry in mutated_candidates:
-        #print("{:<5} {:<10} {:<20} {:<10} {:<10} {:<15}".format(entry['id'], entry['number'], entry['binary'], entry['x'], round(entry['f(x)'], 4),round(entry['mutation_value'], 2)))
+        #print("{:<5} {:<10} {:<20} {:<10} {:<10} {:<15}".format(entry['id'], entry['number'], entry['binary'], entry['x'], round(entry['fx'], 4),round(entry['mutation_value'], 2)))
 
     # Aplicar mutación a los candidatos
     mutated_individuals = [mutacion_ind(entry, p_gen) for entry in mutated_candidates]
@@ -292,9 +313,9 @@ def mutacion (parejas_cruzadas):
                 break
     # Mostrar toda la población en una tabla
     #print("\nPoblación total:")
-    #print("{:<5} {:<10} {:<20} {:<10} {:<10} {:<15}".format("ID", "Number", "Binary", "X", "f(x)", "Mutation Value"))
+    #print("{:<5} {:<10} {:<20} {:<10} {:<10} {:<15}".format("ID", "Number", "Binary", "X", "fx", "Mutation Value"))
     #for entry in mutacion:
-        #print("{:<5} {:<10} {:<20} {:<10} {:<10} {:<15}".format(entry['id'], entry['number'], entry['binary'], entry['x'], round(entry['f(x)'], 4), round(entry['mutation_value'], 2)))
+        #print("{:<5} {:<10} {:<20} {:<10} {:<10} {:<15}".format(entry['id'], entry['number'], entry['binary'], entry['x'], round(entry['fx'], 4), round(entry['mutation_value'], 2)))
     #print("sali de la mutacion")
     return mutacion
 
@@ -321,7 +342,7 @@ def mutacion_ind(mutated_candidates, p_gen):
     mutated_individual['binary'] = mutated_binary
     mutated_individual['number'] = int(mutated_individual['binary'], 2)
     mutated_individual['x'] = round(calculate_x(min_x, number=mutated_individual['number'], deltax=deltax), 3)
-    mutated_individual['f(x)'] = parsed_function.subs('x', mutated_individual['x'])
+    mutated_individual['fx'] = parsed_function.subs('x', mutated_individual['x'])
     
     return mutated_individual
 #grafica 
@@ -329,28 +350,28 @@ def grafica(gen_podada,resultados_grafica):
     print("vamos por los datos de la grafica\n")
     if opcion == 1:
         mejor = gen_podada[0]
-        peor = max(gen_podada, key=lambda entry: entry['f(x)'])
-        promedio = round(sum(entry['f(x)'] for entry in gen_podada) / len(gen_podada),4)
-        print("Mejor valor de f(x): {:.4f}".format(mejor['f(x)']))
-        print("Promedio valor de f(x):",promedio)
-        print("Peor valor de f(x): {:.4f}".format(peor['f(x)']))
+        peor = max(gen_podada, key=lambda entry: entry['fx'])
+        promedio = round(sum(entry['fx'] for entry in gen_podada) / len(gen_podada),4)
+        print("Mejor valor de fx: {:.4f}".format(mejor['fx']))
+        print("Promedio valor de fx:",promedio)
+        print("Peor valor de fx: {:.4f}".format(peor['fx']))
         #guardamos los valores
         resultados_grafica.append({
-            "mejor": mejor['f(x)'],
+            "mejor": mejor['fx'],
             "promedio": promedio,
-            "peor": peor['f(x)']
+            "peor": peor['fx']
         })
     elif opcion ==2:
         mejor = gen_podada[0]
-        peor = min(gen_podada, key=lambda entry: entry['f(x)'])
-        promedio = round(sum(entry['f(x)'] for entry in gen_podada) / len(gen_podada),4)
-        print("Mejor valor de f(x): {:.4f}".format(mejor['f(x)']))
-        print("Promedio valor de f(x):",promedio)
-        print("Peor valor de f(x): {:.4f}".format(peor['f(x)']))
+        peor = min(gen_podada, key=lambda entry: entry['fx'])
+        promedio = round(sum(entry['fx'] for entry in gen_podada) / len(gen_podada),4)
+        print("Mejor valor de fx: {:.4f}".format(mejor['fx']))
+        print("Promedio valor de fx:",promedio)
+        print("Peor valor de fx: {:.4f}".format(peor['fx']))
         resultados_grafica.append({
-            "mejor": mejor['f(x)'],
+            "mejor": mejor['fx'],
             "promedio": promedio,
-            "peor": peor['f(x)']
+            "peor": peor['fx']
         })
     return resultados_grafica
 
@@ -368,7 +389,7 @@ def org_pob_total (poblacion_total):
         if entry['number'] not in numeros_unicos:
             numeros_unicos.add(entry['number'])
             entry['x'] = round(calculate_x(min_x, number=entry['number'], deltax=deltax), 3)
-            entry['f(x)'] = parsed_function.subs('x', entry['x'])
+            entry['fx'] = parsed_function.subs('x', entry['x'])
             pob_total_order.append(entry)
     if opcion == 1:
         
@@ -378,7 +399,7 @@ def org_pob_total (poblacion_total):
         pob_total_order = sorted(pob_total_order, key=lambda entry: parsed_function.subs('x', entry['x']), reverse=True)
     #print("\nPoblacion final ordenada:")
     #for entry in pob_total_order:
-        #print(f"ID: {entry['id']}, Number: {entry['number']}, Binary: {entry['binary']}, X: {entry['x']}, f(x): {round(parsed_function.subs('x', entry['x']), 4)}")
+        #print(f"ID: {entry['id']}, Number: {entry['number']}, Binary: {entry['binary']}, X: {entry['x']}, fx: {round(parsed_function.subs('x', entry['x']), 4)}")
     
     return pob_total_order
 
@@ -392,11 +413,11 @@ def poda(poblacion_total):
     mejor_individuo=None
     peor_individuo=None
     if opcion == 1:
-        mejor_individuo = min(poblacion, key=lambda entry: entry['f(x)'])
-        peor_individuo= max(poblacion, key=lambda entry: entry['f(x)'])
-    else:
-        mejor_individuo = max(poblacion, key=lambda entry: entry['f(x)'])
-        peor_individuo= min(poblacion, key=lambda entry: entry['f(x)'])
+        mejor_individuo = min(poblacion, key=lambda entry: entry['fx'])
+        peor_individuo= max(poblacion, key=lambda entry: entry['fx'])
+    elif opcion == 2:
+        mejor_individuo = max(poblacion, key=lambda entry: entry['fx'])
+        peor_individuo= min(poblacion, key=lambda entry: entry['fx'])
 
     nueva_poblacion = []
     nueva_poblacion.append(mejor_individuo)
@@ -417,18 +438,46 @@ def poda(poblacion_total):
 
     # Imprimir la nueva población
     print("\nPoblación después de la eliminación aleatoria:")
-    print("{:<5} {:<10} {:<20} {:<10} {:<10}".format("ID", "Number", "Binary", "X", "f(x)"))
+    print("{:<5} {:<10} {:<20} {:<10} {:<10}".format("ID", "Number", "Binary", "X", "fx"))
     for entry in nueva_poblacion:
-        print("{:<5} {:<10} {:<20} {:<10} {:<10}".format(entry['id'], entry['number'], entry['binary'], entry['x'], round(entry['f(x)'], 4)))
+        print("{:<5} {:<10} {:<20} {:<10} {:<10}".format(entry['id'], entry['number'], entry['binary'], entry['x'], round(entry['fx'], 4)))
     return nueva_poblacion
 
 def get_promedio (poblacion):
-    promedio = sum(entry['f(x)'] for entry in poblacion) / len(poblacion)
+    promedio = sum(entry['fx'] for entry in poblacion) / len(poblacion)
     return promedio
 
 def start ():
     ind=data_inicial()
     optimizacion(ind)
+
+def obtener_datos_generacion(poblacion_total):
+    datos = []
+    
+    print("estoy obteniendo los datos")
+    #print(poblacion_total)
+    if opcion == 1:
+        datos = sorted(poblacion_total, key=lambda entry: parsed_function.subs('x', entry['x']))
+        mejor = datos[0]
+        peor = max(datos, key=lambda entry: entry['fx'])
+
+        print("Mejor valor de fx: {:.4f}".format(mejor['fx']))
+        print("Peor valor de fx: {:.4f}".format(peor['fx']))
+
+    elif opcion == 2:
+        datos = sorted(poblacion_total, key=lambda entry: parsed_function.subs('x', entry['x']), reverse=True)
+        mejor = datos[0]
+        peor = min(datos, key=lambda entry: entry['fx'])
+
+        print("Mejor valor de fx: {:.4f}".format(mejor['fx']))
+        print("Peor valor de fx: {:.4f}".format(peor['fx']))
+
+
+    print("\nPoblacion antes de la poda:")
+    for entry in datos:
+        print(f"ID: {entry['id']}, Number: {entry['number']}, Binary: {entry['binary']}, X: {entry['x']}, fx: {round(parsed_function.subs('x', entry['x']), 4)}")
+    #print("mejor:", best, "peor: ", worse)
+    return datos, mejor, peor
 
 #grafica 
 def plot_resultados(resultados_grafica):
@@ -442,8 +491,25 @@ def plot_resultados(resultados_grafica):
     plt.plot(generaciones, peor, label='Peor')
 
     plt.xlabel('Generación')
-    plt.ylabel('f(x)')
+    plt.ylabel('fx')
     plt.title('Resultados de las Generaciones')
+    plt.legend()
+    plt.show()
+    
+def plot_resultados_gen(datos, best, worst,id_gen):
+    print("generacion n°:", id_gen)
+    datos_x = [i['x'] for i in datos]
+    datos_y = [i['fx'] for i in datos]
+    print(datos_x, datos_y)
+
+    plt.scatter(datos_x, datos_y, label='Individuos')
+    plt.scatter(best['x'], best['fx'], label='Mejor')
+    plt.scatter(worst['x'], worst['fx'], label='Peor')
+
+
+    plt.xlabel('Generación')
+    plt.ylabel('fx')
+    plt.title('Resultado de la Generacion {}'.format(id_gen))
     plt.legend()
     plt.show()
 
