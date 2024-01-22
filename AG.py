@@ -116,6 +116,7 @@ def on_button_click(valor):
     opcion = valor
      
 def data_inicial ():
+    
     bits_needed = get_bits() #calculo el numero de la repreesentacion de los bits
     #print("numero de bits: ", bits_needed)
     ind = generate_indiv(bits_needed)
@@ -186,7 +187,7 @@ def optimizacion(ind):
     mejor_global = {}  # Inicializar mejor_global como un diccionario vacío
 
     for generacion in range(generaciones):
-        print(f"\nProceso de optimización - Generación {generacion}\n")
+        #print(f"\nProceso de optimización - Generación {generacion}\n")
         id_gen = generacion
         
         ind_ordenados = organizar(ind)
@@ -226,14 +227,12 @@ def optimizacion(ind):
             })
         plot_resultados_gen(datos, best, worst,id_gen)
 
-    for i, resultados_generacion in enumerate(resultados_grafica):
+    """for i, resultados_generacion in enumerate(resultados_grafica):
         print(f"\nResultados Generación {i}:")
         print("Mejor: {:.4f}".format(resultados_generacion['mejor']))
         print("Promedio: {:.4f}".format(resultados_generacion['promedio']))
-        print("Peor: {:.4f}".format(resultados_generacion['peor']))
+        print("Peor: {:.4f}".format(resultados_generacion['peor']))"""
 
-        
-    
     plot_resultados(resultados_grafica)
     crear_video(ruta_images)
     return resultados_grafica
@@ -440,10 +439,10 @@ def poda(poblacion_total):
         entry['id'] = i
 
     # Imprimir la nueva población
-    print("\nPoblación después de la eliminación aleatoria:")
-    print("{:<5} {:<10} {:<20} {:<10} {:<10}".format("ID", "Number", "Binary", "X", "fx"))
-    for entry in nueva_poblacion:
-        print("{:<5} {:<10} {:<20} {:<10} {:<10}".format(entry['id'], entry['number'], entry['binary'], entry['x'], round(entry['fx'], 4)))
+    #print("\nPoblación después de la eliminación aleatoria:")
+    #print("{:<5} {:<10} {:<20} {:<10} {:<10}".format("ID", "Number", "Binary", "X", "fx"))
+    #for entry in nueva_poblacion:
+        #print("{:<5} {:<10} {:<20} {:<10} {:<10}".format(entry['id'], entry['number'], entry['binary'], entry['x'], round(entry['fx'], 4)))
     return nueva_poblacion
 
 def get_promedio (poblacion):
@@ -457,28 +456,28 @@ def start ():
 def obtener_datos_generacion(poblacion_total):
     datos = []
     
-    print("estoy obteniendo los datos")
+    #print("estoy obteniendo los datos")
     #print(poblacion_total)
     if opcion == 1:
         datos = sorted(poblacion_total, key=lambda entry: parsed_function.subs('x', entry['x']))
         mejor = datos[0]
         peor = max(datos, key=lambda entry: entry['fx'])
 
-        print("Mejor valor de fx: {:.4f}".format(mejor['fx']))
-        print("Peor valor de fx: {:.4f}".format(peor['fx']))
+        #print("Mejor valor de fx: {:.4f}".format(mejor['fx']))
+        #print("Peor valor de fx: {:.4f}".format(peor['fx']))
 
     elif opcion == 2:
         datos = sorted(poblacion_total, key=lambda entry: parsed_function.subs('x', entry['x']), reverse=True)
         mejor = datos[0]
         peor = min(datos, key=lambda entry: entry['fx'])
 
-        print("Mejor valor de fx: {:.4f}".format(mejor['fx']))
-        print("Peor valor de fx: {:.4f}".format(peor['fx']))
+        #print("Mejor valor de fx: {:.4f}".format(mejor['fx']))
+        #print("Peor valor de fx: {:.4f}".format(peor['fx']))
 
 
-    print("\nPoblacion antes de la poda:")
-    for entry in datos:
-        print(f"ID: {entry['id']}, Number: {entry['number']}, Binary: {entry['binary']}, X: {entry['x']}, fx: {round(parsed_function.subs('x', entry['x']), 4)}")
+    #print("\nPoblacion antes de la poda:")
+    #for entry in datos:
+        #print(f"ID: {entry['id']}, Number: {entry['number']}, Binary: {entry['binary']}, X: {entry['x']}, fx: {round(parsed_function.subs('x', entry['x']), 4)}")
     #print("mejor:", best, "peor: ", worse)
     return datos, mejor, peor
 
@@ -500,19 +499,22 @@ def plot_resultados(resultados_grafica):
     plt.show()
     
 def plot_resultados_gen(datos, best, worst,id_gen,save_path=ruta_images):
-    print("generacion n°:", id_gen)
+    #print("generacion n°:", id_gen)
     datos_x = [i['x'] for i in datos]
     datos_y = [i['fx'] for i in datos]
-    print(datos_x, datos_y)
-
+    #print(datos_x, datos_y)
+    
+    #print("fx: ",funcion.get())
+    
     plt.scatter(datos_x, datos_y, label='Individuos')
     plt.scatter(best['x'], best['fx'], label='Mejor')
     plt.scatter(worst['x'], worst['fx'], label='Peor')
-
+    plt.xlim(float(x_min.get()),float(x_max.get()))
 
     plt.xlabel('Generación')
     plt.ylabel('fx')
-    plt.title('Resultado de la Generacion {}'.format(id_gen))
+    plt.suptitle('Resultado de la Generacion {}'.format(id_gen))
+    plt.title('f(x)= {}'.format(funcion.get()))
     plt.legend()
 
     if save_path:
@@ -520,7 +522,7 @@ def plot_resultados_gen(datos, best, worst,id_gen,save_path=ruta_images):
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         filename = 'resultado_generacion_{}.png'.format(id_gen)
         plt.savefig(os.path.join(save_path, filename))
-        print(f"La gráfica de la generación {id_gen} ha sido guardada en: {save_path}")
+        #print(f"La gráfica de la generación {id_gen} ha sido guardada en: {save_path}")
     else:
         plt.show()
 
@@ -528,12 +530,14 @@ def plot_resultados_gen(datos, best, worst,id_gen,save_path=ruta_images):
 #generar videos
 def crear_video(images, nombre_video="video_resultados.mp4", fps=1):
     imagenes = [img for img in os.listdir(images) if img.endswith(".png")]
+    imagenes_ordenadas = sorted(imagenes, key=lambda x: int(x.split('_')[-1].split('.')[0]))
+
     frame = cv2.imread(os.path.join(images, imagenes[0]))
     altura, ancho, _ = frame.shape
 
     video = cv2.VideoWriter(nombre_video, cv2.VideoWriter_fourcc(*"mp4v"), fps, (ancho, altura))
 
-    for imagen in imagenes:
+    for imagen in imagenes_ordenadas:
         frame = cv2.imread(os.path.join(images, imagen))
         video.write(frame)
 
