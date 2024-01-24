@@ -132,7 +132,7 @@ def get_bits ():
     saltos = rango/ float(resolucion.get())
     puntos = saltos + 1
     bits = float(math.log2(puntos))
-    
+    #Calculamos el rango 
     bits_final = math.ceil(bits)
     #print ("bits final: ", bits_final)
     return bits_final
@@ -230,7 +230,7 @@ def optimizacion(ind):
         gen_podada = poda(poblacion_total)
         poblacion_total = gen_podada
 
-        
+    print("soy el mejor individuo:", mejor_global)
     plot_resultados(resultados_grafica)
     crear_video(ruta_images)
     return resultados_grafica
@@ -238,10 +238,8 @@ def optimizacion(ind):
 def organizar (ind):
     numbers_org = []
     if opcion == 1:
-        #print("\nMinimizado")
         numbers_org = sorted(ind, key=lambda entry: parsed_function.subs('x', entry['x']))
     elif opcion ==2:
-        #print("\nMaximizado")
         numbers_org = sorted(ind, key=lambda entry: parsed_function.subs('x', entry['x']), reverse=True)
   
     return numbers_org
@@ -252,13 +250,13 @@ def parejas (ind_ordenados):
     return best_half
 
 def cruza(parejas_formada,ultimo_id):
-    #print("estoy en la cruza\n Soy el ultimo ID:", ultimo_id)
+    #datos inicales
     min_x = float(x_min.get())
     max_x = float(x_max.get())
     rango_value = int (max_x - min_x)
     num = int (2**(bits_final)-1)
     deltax = float(rango_value / num)   
-    #print(min_x,max_x,deltax,num)
+    
     best_individual = max(parejas_formada, key=lambda x: parsed_function.subs('x', x['x']))
     mejor_mitad = [individuo for individuo in parejas_formada if individuo != best_individual]
     punto_cruza = bits_final//2 + bits_final % 2
@@ -276,18 +274,18 @@ def cruza(parejas_formada,ultimo_id):
         child_x_2 = round(calculate_x(min_x, child_number_1, deltax), 3)
         child_fx_2 = parsed_function.subs('x', child_x_2)
         # Agrega los nuevos individuos a la nueva generación
-        new_generation.append({"id": ultimo_id + len(new_generation) + 1, "number": child_number_1, "binary": child_binary_1, "x": child_x_1, "fx": child_fx_1, "padre1": best_individual['id'], "padre2": other_individual['id']})
-        new_generation.append({"id": ultimo_id + len(new_generation) + 1, "number": child_number_2, "binary": child_binary_2, "x": child_x_2, "fx": child_fx_2, "padre1": other_individual['id'], "padre2": best_individual['id']})
+        new_generation.append({"id": ultimo_id + len(new_generation) + 1, "number": child_number_1, "binary": child_binary_1, "x": child_x_1, "fx": child_fx_1})
+        new_generation.append({"id": ultimo_id + len(new_generation) + 1, "number": child_number_2, "binary": child_binary_2, "x": child_x_2, "fx": child_fx_2})
     return new_generation
 
 def mutacion (parejas_cruzadas):  
     prob_gen = float(p_gen.get())
     
     for entry in parejas_cruzadas:
-        entry['mutation_value'] = round(random.uniform(0, 100) / 100, 3) # Dividir por 100
+        entry['mutation_value'] = round(random.uniform(0, 100) / 100, 3) 
     mutacion = parejas_cruzadas
     # Filtrar los individuos que mutarán (cuyo valor de mutación es menor a p_ind)
-    mutated_candidates = [entry for entry in mutacion if entry['mutation_value'] < float(p_ind.get())]  # Convertir p_ind a float
+    mutated_candidates = [entry for entry in mutacion if entry['mutation_value'] < float(p_ind.get())]  
    
     mutated_individuals = [mutacion_ind(entry, p_gen) for entry in mutated_candidates]
     # Actualizar los valores mutados en la lista original
@@ -323,6 +321,7 @@ def mutacion_ind(mutated_candidates, p_gen):
     mutated_individual['fx'] = parsed_function.subs('x', mutated_individual['x'])
     
     return mutated_individual
+
 #grafica 
 def grafica(gen_podada,resultados_grafica):
     print("vamos por los datos de la grafica\n")
@@ -379,7 +378,6 @@ def org_pob_total (poblacion_total):
     return pob_total_order
 
 def poda(poblacion_total):
-    #print("estoy en la poda XD")
     po_max = int(p_max.get())
     
     poblacion = org_pob_total(poblacion_total)
@@ -397,13 +395,10 @@ def poda(poblacion_total):
     nueva_poblacion.append(mejor_individuo)
     #nueva_poblacion.append(peor_individuo)
     
-    # Determinar la cantidad de individuos a eliminar
     cantidad_a_eliminar = max(0, len(poblacion) - po_max)
     
-    # Seleccionar de manera aleatoria los individuos a eliminar
     indices_a_eliminar = random.sample(range(1, len(poblacion)), min(cantidad_a_eliminar, len(poblacion) - 1))
     
-    # Agregar a la nueva población los individuos no seleccionados para eliminar
     nueva_poblacion.extend(entry for i, entry in enumerate(poblacion[1:], start=1) if i not in indices_a_eliminar)
 
     # Actualizar los IDs en la nueva población
@@ -471,12 +466,10 @@ def plot_resultados_gen(datos, best, worst, id_gen, save_path=ruta_images):
     # Calcular los valores correspondientes de f(x) para la curva
     y_vals = [parsed_function.subs('x', x_val) for x_val in x_vals]
 
-    # print("fx: ",funcion.get())
-
     plt.scatter(datos_x, datos_y, label='Individuos')
     plt.scatter(best['x'], best['fx'], label='Mejor')
     plt.scatter(worst['x'], worst['fx'], label='Peor')
-    plt.plot(x_vals, y_vals, label='f(x)')  # Agregar la curva de la función
+    plt.plot(x_vals, y_vals, label='f(x)') 
 
     plt.xlim(float(x_min.get()), float(x_max.get()))
 
@@ -487,15 +480,14 @@ def plot_resultados_gen(datos, best, worst, id_gen, save_path=ruta_images):
     plt.legend()
 
     if save_path:
-        # Asegurarse de que el directorio de guardado exista
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         filename = 'resultado_generacion_{}.png'.format(id_gen)
         plt.savefig(os.path.join(save_path, filename))
-        # print(f"La gráfica de la generación {id_gen} ha sido guardada en: {save_path}")
     else:
         plt.show()
 
     plt.close()
+
 #generar videos
 def crear_video(images, nombre_video="video_resultados.mp4", fps=1):
     imagenes = [img for img in os.listdir(images) if img.endswith(".png")]
